@@ -11,47 +11,47 @@ namespace WebApplication13Pract.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ClientsController : ControllerBase
+    public class ServicesController : ControllerBase
     {
         private readonly SalonDb2Context _context;
 
-        public ClientsController(SalonDb2Context context)
+        public ServicesController(SalonDb2Context context)
         {
             _context = context;
         }
 
-        // GET: api/Clients
+        // GET: api/Services
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Client>>> GetClients()
+        public async Task<ActionResult<IEnumerable<Service>>> GetServices()
         {
-            return await _context.Clients.ToListAsync();
+            return await _context.Services.ToListAsync();
         }
 
-        // GET: api/Clients/5
+        // GET: api/Services/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Client>> GetClient(int id)
+        public async Task<ActionResult<Service>> GetService(int id)
         {
-            var client = await _context.Clients.FindAsync(id);
+            var service = await _context.Services.FindAsync(id);
 
-            if (client == null)
+            if (service == null)
             {
                 return NotFound();
             }
 
-            return client;
+            return service;
         }
 
-        // PUT: api/Clients/5
+        // PUT: api/Services/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutClient(int id, Client client)
+        public async Task<IActionResult> PutService(int id, Service service)
         {
-            if (id != client.CardNumber)
+            if (id != service.Code)
             {
                 return BadRequest();
             }
 
-            _context.Entry(client).State = EntityState.Modified;
+            _context.Entry(service).State = EntityState.Modified;
 
             try
             {
@@ -59,7 +59,7 @@ namespace WebApplication13Pract.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!ClientExists(id))
+                if (!ServiceExists(id))
                 {
                     return NotFound();
                 }
@@ -72,36 +72,36 @@ namespace WebApplication13Pract.Controllers
             return NoContent();
         }
 
-        // POST: api/Clients
+        // POST: api/Services
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Client>> PostClient(Client client)
+        public async Task<ActionResult<Service>> PostService(Service service)
         {
-            _context.Clients.Add(client);
+            _context.Services.Add(service);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetClient", new { id = client.CardNumber }, client);
+            return CreatedAtAction("GetService", new { id = service.Code }, service);
         }
 
-        // DELETE: api/Clients/5
+        // DELETE: api/Services/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteClient(int id)
+        public async Task<IActionResult> DeleteService(int id)
         {
-            var client = await _context.Clients.FindAsync(id);
-            if (client == null)
+            var service = await _context.Services.FindAsync(id);
+            if (service == null)
             {
                 return NotFound();
             }
 
-            _context.Clients.Remove(client);
+            _context.Services.Remove(service);
             await _context.SaveChangesAsync();
 
             return NoContent();
         }
 
-        private bool ClientExists(int id)
+        private bool ServiceExists(int id)
         {
-            return _context.Clients.Any(e => e.CardNumber == id);
+            return _context.Services.Any(e => e.Code == id);
         }
     }
 }
