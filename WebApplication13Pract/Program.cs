@@ -26,4 +26,4 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+app.Run("http://192.168.26.17:7077");
