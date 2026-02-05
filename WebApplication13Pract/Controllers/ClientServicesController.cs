@@ -66,7 +66,7 @@ namespace WebApplication13Pract.Controllers
         {
             if (clientId != clientServiceDTO.ClientId || appointmentDateTime != clientServiceDTO.AppointmentDateTime)
             {
-                return BadRequest("Данные в запросе и теле не совпадают.");
+                return BadRequest("Нельзя изменить ключевые поля записи. Создайте новую запись.");
             }
 
             var clientService = await _context.ClientServices
