@@ -38,8 +38,9 @@ public partial class SalonDb2Context : DbContext
 
         modelBuilder.Entity<ClientService>(entity =>
         {
-            entity.HasKey(e => new { e.ClientId, e.AppointmentDateTime });
+            entity.HasKey(e => e.IdclientServices);
 
+            entity.Property(e => e.IdclientServices).HasColumnName("IDClientServices");
             entity.Property(e => e.AppointmentDateTime).HasColumnType("datetime");
 
             entity.HasOne(d => d.Client).WithMany(p => p.ClientServices)

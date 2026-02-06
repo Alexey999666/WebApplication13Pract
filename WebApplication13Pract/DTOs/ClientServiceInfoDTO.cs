@@ -1,9 +1,14 @@
-﻿using WebApplication13Pract.Models;
+﻿using System;
+using System.Collections.Generic;
 using WebApplication13Pract.DTOs;
+
+using WebApplication13Pract.Models;
+
 namespace WebApplication13Pract.DTOs
 {
     public partial class ClientServiceInfoDTO
     {
+        public int IdclientServices { get; set; }
         public int ClientId { get; set; }
         public int ServiceId { get; set; }
         public string LastName { get; set; } // Фамилия клиента
@@ -12,11 +17,12 @@ namespace WebApplication13Pract.DTOs
         public decimal Price { get; set; } // Цена услуги
         public DateTime AppointmentDateTime { get; set; }
 
-
         public ClientServiceInfoDTO() { }
+
         // Конструктор для передачи данных из сущности в DTO
         public ClientServiceInfoDTO(ClientService value)
         {
+            IdclientServices = value.IdclientServices;
             ClientId = value.ClientId;
             ServiceId = value.ServiceId;
             LastName = value.Client?.LastName ?? "Не указано";
@@ -25,7 +31,5 @@ namespace WebApplication13Pract.DTOs
             Price = value.Service?.Price ?? 0;
             AppointmentDateTime = value.AppointmentDateTime;
         }
-
-      
     }
 }

@@ -6,6 +6,8 @@ namespace WebApplication13Pract.Models;
 
 public partial class ClientService
 {
+    public int IdclientServices { get; set; }
+
     public int ClientId { get; set; }
 
     public int ServiceId { get; set; }
@@ -16,22 +18,23 @@ public partial class ClientService
 
     public virtual Service Service { get; set; } = null!;
 
-    // Конструктор для создания из DTO
-    public ClientService(ClientServiceDTO dto)
-    {
-        ClientId = dto.ClientId;
-        ServiceId = dto.ServiceId;
-        AppointmentDateTime = dto.AppointmentDateTime;
-    }
 
-    // Метод для обновления из DTO
-    public void Update(ClientServiceDTO dto)
-    {
-        ClientId = dto.ClientId;
-        ServiceId = dto.ServiceId;
-        AppointmentDateTime = dto.AppointmentDateTime;
-    }
-
-    // Пустой конструктор
     public ClientService() { }
+
+    // Конструктор для передачи данных из DTO в сущность
+    public ClientService(ClientServiceDTO value)
+    {
+        IdclientServices = value.IdclientServices;
+        ClientId = value.ClientId;
+        ServiceId = value.ServiceId;
+        AppointmentDateTime = value.AppointmentDateTime;
+    }
+
+    public void Update(ClientServiceDTO value)
+    {
+        ClientId = value.ClientId;
+        ServiceId = value.ServiceId;
+        AppointmentDateTime = value.AppointmentDateTime;
+    }
+
 }

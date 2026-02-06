@@ -1,13 +1,12 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using WebApplication13Pract.DTOs;
-
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using WebApplication13Pract.Models;
+using WebApplication13Pract.DTOs;
 
 namespace WebApplication13Pract.Controllers
 {
@@ -22,73 +21,82 @@ namespace WebApplication13Pract.Controllers
             _context = context;
         }
 
-        // GET: api/ClientServices/Info
+        // GET: api/ClientServices/Info - получение информации с связанными данными
         [HttpGet("Info")]
-        public async Task<ActionResult<IEnumerable<ClientServiceInfoDTO>>> GetClientServicesInfo()
+        public async Task<ActionResult<IEnumerable<ClientServiceInfoDTO>>> GetClientServiceInfoDTO()
         {
             // Загружаем связанные данные
             await _context.Clients.LoadAsync();
             await _context.Services.LoadAsync();
 
-            // Преобразуем в DTO
-            var result = await _context.ClientServices
-                .Select(cs => new ClientServiceInfoDTO(cs))
+            // Получаем данные из БД и переводим в формат DTO
+            return await _context.ClientServices
+                .Include(cs => cs.Client)
+                .Include(cs => cs.Service)
+                .Select(p => new ClientServiceInfoDTO(p))
                 .ToListAsync();
-
-            return result;
         }
 
-        // GET: api/ClientServices
+        // GET: api/ClientServices - стандартный метод получения записей
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ClientService>>> GetClientServices()
         {
             return await _context.ClientServices.ToListAsync();
         }
 
-        // GET: api/ClientServices/{clientId}/{appointmentDateTime}
-        [HttpGet("{clientId}/{appointmentDateTime}")]
-        public async Task<ActionResult<ClientService>> GetClientService(int clientId, DateTime appointmentDateTime)
+        // GET: api/ClientServices/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ClientService>> GetClientService(int id)
         {
             var clientService = await _context.ClientServices
-                .FirstOrDefaultAsync(cs => cs.ClientId == clientId && cs.AppointmentDateTime == appointmentDateTime);
+                .Include(cs => cs.Client)
+                .Include(cs => cs.Service)
+                .FirstOrDefaultAsync(cs => cs.IdclientServices == id);
 
             if (clientService == null)
             {
-                return NotFound($"Запись не найдена.");
+                return NotFound($"Ошибка 404: Запись id={id} не обнаружена!");
             }
 
             return clientService;
         }
 
-        // PUT: api/ClientServices/{clientId}/{appointmentDateTime}
-        [HttpPut("{clientId}/{appointmentDateTime}")]
-        public async Task<IActionResult> PutClientService(int clientId, DateTime appointmentDateTime, ClientServiceDTO clientServiceDTO)
+        // PUT: api/ClientServices/5 - редактирование с использованием DTO
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutClientService(int id, ClientServiceDTO clientServiceDTO)
         {
-            if (clientId != clientServiceDTO.ClientId || appointmentDateTime != clientServiceDTO.AppointmentDateTime)
+            // Проверяем соответствие ID в маршруте и в теле запроса
+            if (id != clientServiceDTO.IdclientServices)
             {
-                return BadRequest("Нельзя изменить ключевые поля записи. Создайте новую запись.");
+                return BadRequest($"Ошибка 400: Несоответствие ID в маршруте и теле запроса!");
             }
 
-            var clientService = await _context.ClientServices
-                .FirstOrDefaultAsync(cs => cs.ClientId == clientId && cs.AppointmentDateTime == appointmentDateTime);
+            // Ищем исходную запись по IdclientServices
+            var clientService = await _context.ClientServices.FindAsync(id);
 
             if (clientService == null)
             {
-                return NotFound($"Запись не найдена.");
+                return NotFound($"Ошибка 404: Запись id={id} не обнаружена!");
             }
 
-            // Проверяем существование клиента и услуги
-            if (!_context.Clients.Any(c => c.CardNumber == clientServiceDTO.ClientId))
+            // Проверяем существование клиента
+            var clientExists = await _context.Clients
+                .AnyAsync(c => c.CardNumber == clientServiceDTO.ClientId);
+            if (!clientExists)
             {
-                return BadRequest("Клиент не найден.");
-            }
-            if (!_context.Services.Any(s => s.Code == clientServiceDTO.ServiceId))
-            {
-                return BadRequest("Услуга не найдена.");
+                return BadRequest("Ошибка: Клиент не найден");
             }
 
+            // Проверяем существование услуги
+            var serviceExists = await _context.Services
+                .AnyAsync(s => s.Code == clientServiceDTO.ServiceId);
+            if (!serviceExists)
+            {
+                return BadRequest("Ошибка: Услуга не найдена");
+            }
+
+            // Обновляем данные из DTO
             clientService.Update(clientServiceDTO);
-            _context.Entry(clientService).State = EntityState.Modified;
 
             try
             {
@@ -96,58 +104,60 @@ namespace WebApplication13Pract.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!ClientServiceExists(clientId, appointmentDateTime))
+                if (!ClientServiceExists(id))
                 {
-                    return NotFound();
+                    return NotFound($"Ошибка 404: Запись id={id} не обнаружена!");
                 }
                 else
                 {
-                    throw;
+                    return Conflict($"Ошибка 409: Запись id={id} заблокирована или изменена другим пользователем!");
                 }
             }
 
             return NoContent();
         }
 
-        // POST: api/ClientServices
+        // POST: api/ClientServices - добавление с использованием DTO
         [HttpPost]
-        public async Task<ActionResult<ClientService>> PostClientService(ClientServiceDTO clientServiceDTO)
+        public async Task<ActionResult<ClientServiceDTO>> PostClientService(ClientServiceDTO clientServiceDTO)
         {
-            // Проверяем существование клиента и услуги
-            if (!_context.Clients.Any(c => c.CardNumber == clientServiceDTO.ClientId))
+            // Проверяем существование клиента
+            var clientExists = await _context.Clients
+                .AnyAsync(c => c.CardNumber == clientServiceDTO.ClientId);
+            if (!clientExists)
             {
-                return BadRequest("Клиент не найден.");
-            }
-            if (!_context.Services.Any(s => s.Code == clientServiceDTO.ServiceId))
-            {
-                return BadRequest("Услуга не найдена.");
+                return BadRequest("Ошибка: Клиент не найден");
             }
 
-            // Проверяем, не существует ли уже записи с такими ключами
-            bool exists = await _context.ClientServices
-                .AnyAsync(cs => cs.ClientId == clientServiceDTO.ClientId && cs.AppointmentDateTime == clientServiceDTO.AppointmentDateTime);
-            if (exists)
+            // Проверяем существование услуги
+            var serviceExists = await _context.Services
+                .AnyAsync(s => s.Code == clientServiceDTO.ServiceId);
+            if (!serviceExists)
             {
-                return Conflict("Запись с такими данными уже существует.");
+                return BadRequest("Ошибка: Услуга не найдена");
             }
 
-            var clientService = new ClientService(clientServiceDTO);
+            // Для новой записи ID может быть 0 или другим значением, 
+            // но Entity Framework сгенерирует новый ID при сохранении
+            ClientService clientService = new ClientService(clientServiceDTO);
+
             _context.ClientServices.Add(clientService);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetClientService", new { clientId = clientService.ClientId, appointmentDateTime = clientService.AppointmentDateTime }, clientService);
+            // Возвращаем созданную запись
+            return CreatedAtAction("GetClientService",
+                new { id = clientService.IdclientServices },
+                clientService);
         }
 
-        // DELETE: api/ClientServices/{clientId}/{appointmentDateTime}
-        [HttpDelete("{clientId}/{appointmentDateTime}")]
-        public async Task<IActionResult> DeleteClientService(int clientId, DateTime appointmentDateTime)
+        // DELETE: api/ClientServices/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteClientService(int id)
         {
-            var clientService = await _context.ClientServices
-                .FirstOrDefaultAsync(cs => cs.ClientId == clientId && cs.AppointmentDateTime == appointmentDateTime);
-
+            var clientService = await _context.ClientServices.FindAsync(id);
             if (clientService == null)
             {
-                return NotFound($"Запись не найдена.");
+                return NotFound($"Ошибка 404: Запись id={id} не обнаружена!");
             }
 
             _context.ClientServices.Remove(clientService);
@@ -156,9 +166,9 @@ namespace WebApplication13Pract.Controllers
             return NoContent();
         }
 
-        private bool ClientServiceExists(int clientId, DateTime appointmentDateTime)
+        private bool ClientServiceExists(int id)
         {
-            return _context.ClientServices.Any(e => e.ClientId == clientId && e.AppointmentDateTime == appointmentDateTime);
+            return _context.ClientServices.Any(e => e.IdclientServices == id);
         }
     }
 }
